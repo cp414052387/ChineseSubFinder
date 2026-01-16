@@ -43,7 +43,7 @@
       </template>
       <template v-else>
         <div>未搜索到数据，<q-btn flat label="重试" color="primary" dense @click="searchCsf" /></div>
-        <div>如果报错信息提示没有 ApiKey，请到<b>配置中心-字幕源设置</b>，填写SubtitleBest的ApiKey</div>
+        <div>如果报错信息提示没有 Token，请到<b>配置中心-字幕源设置</b>，填写 Assrt Token</div>
       </template>
     </div>
     <q-inner-loading :showing="loading">
