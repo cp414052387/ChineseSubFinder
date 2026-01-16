@@ -1,6 +1,5 @@
 <template>
   <div style="min-height: 300px">
-    <subtitle-best-api-limit-banner />
     <q-list v-if="csfSearchResult?.length" separator>
       <q-item v-for="(item, index) in csfSearchResult" :key="item.sub_sha256">
         <q-item-section>
@@ -29,27 +28,18 @@
       </q-item>
     </q-list>
     <div v-else-if="!loading" class="text-grey">
-      <div>
-        <span>ImdbId: {{ imdbId || '-' }}</span>
-        <span v-if="imdbId && !isImdbId(imdbId)" class="q-ml-md text-negative">这是个无效的ImdbId</span>
-      </div>
-      <template v-if="tmdbErrorMsg">
-        <div class="text-negative">{{ tmdbErrorMsg }}</div>
-        <div><q-btn flat label="重试" color="primary" dense @click="searchCsf" /></div>
-      </template>
-      <template v-else-if="subtitleBestApiErrorMsg">
-        <div class="text-negative">获取字幕列表失败，错误信息：{{ subtitleBestApiErrorMsg }}</div>
-        <div><q-btn flat label="重试" color="primary" dense @click="searchCsf" /></div>
+      <template v-if="assrtApiErrorMsg">
+        <div class="text-negative">获取字幕列表失败，错误信息：{{ assrtApiErrorMsg }}</div>
+        <div><q-btn flat label="重试" color="primary" dense @click="searchAssrt" /></div>
       </template>
       <template v-else>
-        <div>未搜索到数据，<q-btn flat label="重试" color="primary" dense @click="searchCsf" /></div>
-        <div>如果报错信息提示没有 ApiKey，请到<b>配置中心-字幕源设置</b>，填写SubtitleBest的ApiKey</div>
+        <div>未搜索到数据，<q-btn flat label="重试" color="primary" dense @click="searchAssrt" /></div>
+        <div>如果报错信息提示没有 Token，请到<b>配置中心-字幕源设置</b>，填写Assrt的Token</div>
       </template>
     </div>
     <q-inner-loading :showing="loading">
       <q-spinner size="50px" color="primary" />
       <div>{{ loadingMsg }}</div>
-      <div v-if="countdownLoading">预计 {{ nextRequestCountdownSecond }} 秒后取得数据</div>
     </q-inner-loading>
   </div>
 </template>
@@ -58,17 +48,13 @@
 import { computed, onMounted, ref } from 'vue';
 import LibraryApi from 'src/api/LibraryApi';
 import { SystemMessage } from 'src/utils/message';
-import CsfSubtitlesApi from 'src/api/CsfSubtitlesApi';
+import AssrtSubtitlesApi from 'src/api/AssrtSubtitlesApi';
 import BtnDialogPreviewVideo from 'pages/library/BtnDialogPreviewVideo.vue';
 import { getSubtitleUploadList } from 'pages/library/use-library';
 import eventBus from 'vue3-eventbus';
 import { useQuasar } from 'quasar';
 import { LANGUAGES } from 'src/constants/LibraryConstants';
 import { VIDEO_TYPE_MOVIE, VIDEO_TYPE_TV } from 'src/constants/SettingConstants';
-import { settingsState } from 'src/store/settingsState';
-import SubtitleBestApiLimitBanner from 'components/SubtitleBestApiLimitBanner.vue';
-import { useApiLimit } from 'src/composables/use-api-limit';
-import { isImdbId } from 'src/utils/common';
 
 const props = defineProps({
   path: String,
@@ -85,19 +71,12 @@ const props = defineProps({
 });
 
 const $q = useQuasar();
-const { nextRequestCountdownSecond, countdownLoading, waitRequestReady } = useApiLimit(
-  'lastSubtitleBestRequestTime',
-  5 * 1000
-);
-
-const tmdbErrorMsg = ref('');
-const subtitleBestApiErrorMsg = ref('');
+const assrtApiErrorMsg = ref('');
 const loading = ref(false);
 const loadingMsg = ref('');
 const csfSearchResult = ref(null);
 const selectedSubBlob = ref(null);
 const selectedItem = ref(null);
-const imdbId = ref(null);
 
 // blob缓存
 const cacheBlob = ref({});
@@ -129,59 +108,19 @@ const setLock = async () => {
   }
 };
 
-const searchCsf = async () => {
+const searchAssrt = async () => {
   loading.value = true;
-  subtitleBestApiErrorMsg.value = '';
-  loadingMsg.value = '正在从TMDB获取视频详细信息...';
-  const [d, e] = await LibraryApi.getImdbId({
+  assrtApiErrorMsg.value = '';
+  loadingMsg.value = '正在获取字幕列表...';
+  const [data, err] = await AssrtSubtitlesApi.search({
     is_movie: props.isMovie,
     video_f_path: props.path,
   });
-  if (e) {
-    if (settingsState.settings.advanced_settings.tmdb_api_settings.enable) {
-      tmdbErrorMsg.value =
-        '从 TMDB 获取数据失败，检测到你当前正在使用自己的 TMDB ApiKey ，请检查进阶设置-TMDB API中设置的ApiKey是否有效。';
-    } else {
-      tmdbErrorMsg.value =
-        '从 TMDB 获取数据失败，检测到你正在使用公共查询接口，可能是使用人数过多导致查询失败，可以尝试在进阶设置里启用 TMDB API，填写自己的 ApiKey。';
-    }
-    loading.value = false;
-    loadingMsg.value = '';
-    SystemMessage.error(e.message);
-    return;
-  }
-  tmdbErrorMsg.value = '';
-  loadingMsg.value = '正在获取字幕列表...';
-  imdbId.value = d?.ImdbId;
-
-  if (!isImdbId(imdbId.value)) {
-    loadingMsg.value = '';
-    loading.value = false;
-    return;
-  }
-
-  if (props.isMovie) {
-    const [data, err] = await CsfSubtitlesApi.searchMovie({
-      imdb_id: imdbId.value,
-    });
-    if (err !== null) {
-      subtitleBestApiErrorMsg.value = err.message;
-      SystemMessage.error(err.message);
-    } else {
-      csfSearchResult.value = data.subtitles;
-    }
+  if (err !== null) {
+    assrtApiErrorMsg.value = err.message;
+    SystemMessage.error(err.message);
   } else {
-    const [data, err] = await CsfSubtitlesApi.searchTvEps({
-      imdb_id: imdbId.value,
-      season: props.season,
-      episode: props.episode,
-    });
-    if (err !== null) {
-      subtitleBestApiErrorMsg.value = err.message;
-      SystemMessage.error(err.message);
-    } else {
-      csfSearchResult.value = data.subtitles;
-    }
+    csfSearchResult.value = data.subtitles;
   }
   loadingMsg.value = '';
   loading.value = false;
@@ -196,19 +135,11 @@ const fetchSubtitleBlob = async (item) => {
   selectedSubBlob.value = null;
   loading.value = true;
   loadingMsg.value = '正在获取下载地址...';
-  await waitRequestReady();
-
   loadingMsg.value = '正在下载字幕...';
-  const [data, err] = await CsfSubtitlesApi.getDownloadUrl({
-    ...item,
-    imdb_id: imdbId.value,
-  });
+  const [blob, err] = await AssrtSubtitlesApi.download(item.sub_sha256);
   if (err !== null) {
     SystemMessage.error(err.message);
   } else {
-    // fetch资源，获取blob url
-    const res = await fetch(data.download_link);
-    const blob = await res.blob();
     cacheBlob.value = {
       ...cacheBlob.value,
       [item.sub_sha256]: blob,
@@ -257,6 +188,6 @@ const handlePreviewClick = async (item, callback) => {
 };
 
 onMounted(() => {
-  searchCsf();
+  searchAssrt();
 });
 </script>

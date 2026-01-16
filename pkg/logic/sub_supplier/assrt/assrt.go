@@ -137,6 +137,20 @@ func (s *Supplier) GetSubListFromFile4Anime(seriesInfo *series.SeriesInfo) ([]su
 	return s.downloadSub4Series(seriesInfo)
 }
 
+func (s *Supplier) GetSubListFromFile(videoFPath string, isMovie bool) ([]supplier.SubInfo, error) {
+
+	outSubInfos := make([]supplier.SubInfo, 0)
+	if settings.Get().SubtitleSources.AssrtSettings.Enabled == false {
+		return outSubInfos, nil
+	}
+
+	if settings.Get().SubtitleSources.AssrtSettings.Token == "" {
+		return nil, errors.New("Token is empty")
+	}
+
+	return s.getSubListFromFile(videoFPath, isMovie)
+}
+
 func (s *Supplier) getSubListFromFile(videoFPath string, isMovie bool) ([]supplier.SubInfo, error) {
 
 	defer func() {

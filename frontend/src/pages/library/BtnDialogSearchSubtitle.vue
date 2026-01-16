@@ -22,7 +22,7 @@
           narrow-indicator
           style="max-width: 300px"
         >
-          <q-tab name="csf" label="Subtitle.Best API" />
+          <q-tab name="csf" label="Assrt API" />
           <q-tab name="manual" label="手动搜索" />
         </q-tabs>
 
