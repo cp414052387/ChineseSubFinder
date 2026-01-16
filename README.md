@@ -10,7 +10,7 @@
 
 ## 前言
 
-移除全功能版本，以后都是轻量级（Lite），tag 继续保留，实则都有是一个。不再直接支持某些字幕网站的下载（人多了，对方服务器扛不住），请使用第三方的字幕下载服务，subtitle best，具体请进入程序后去设置界面，会有引导。
+移除全功能版本，以后都是轻量级（Lite），tag 继续保留，实则都有是一个。不再直接支持某些字幕网站的下载（人多了，对方服务器扛不住），具体请进入程序后去设置界面，会有引导。
 
 最新的版本可以查看 [Docker Hub](https://hub.docker.com/repository/docker/allanpk716/chinesesubfinder)，没有特殊的需求请不要选择 **Beta** 版本使用。
 
@@ -33,6 +33,12 @@
 
 * [使用教程](https://github.com/ChineseSubFinder/ChineseSubFinder/tree/docs/DesignFile/使用教程)
 * [传参启动（v0.41.x 之后才支持）](https://github.com/ChineseSubFinder/ChineseSubFinder/blob/docs/DesignFile/传参启动/传参启动.md)
+
+### 近期调整说明
+
+- SubtitleBest 相关功能已移除（包括 API 搜索与字幕包搜索）。
+- “共享字幕”前端入口已下线，字幕搜索仅保留手动搜索入口。
+- 媒体信息获取改为仅依赖 TMDB API，如需正常识别与搜索，请在“进阶设置 - TMDB API”中配置可用的 ApiKey。
 
 ### API 文档文档
 
